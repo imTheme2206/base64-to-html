@@ -8,18 +8,25 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { findBase64HtmlValues, type Match } from "@/lib/base64-html";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { findBase64HtmlValues, type Match, type Charset, CHARSETS } from "@/lib/base64-html";
 
 type ParseState =
   | { kind: "empty" }
   | { kind: "error"; message: string }
   | { kind: "ok"; matches: Match[] };
 
-function parse(input: string): ParseState {
+function parse(input: string, charset: Charset): ParseState {
   if (!input.trim()) return { kind: "empty" };
   try {
     const data = JSON.parse(input);
-    return { kind: "ok", matches: findBase64HtmlValues(data) };
+    return { kind: "ok", matches: findBase64HtmlValues(data, charset) };
   } catch (e) {
     return { kind: "error", message: e instanceof Error ? e.message : String(e) };
   }
@@ -27,7 +34,8 @@ function parse(input: string): ParseState {
 
 export function Visualizer() {
   const [input, setInput] = useState("");
-  const state = useMemo(() => parse(input), [input]);
+  const [charset, setCharset] = useState<Charset>("utf-8");
+  const state = useMemo(() => parse(input, charset), [input, charset]);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 space-y-8">
@@ -36,6 +44,20 @@ export function Visualizer() {
         <p className="text-sm text-muted-foreground">
           Paste an API JSON response. Base64-encoded HTML values are detected and rendered automatically.
         </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Label htmlFor="charset-select" className="shrink-0">Decoding charset</Label>
+        <Select value={charset} onValueChange={(v) => setCharset(v as Charset)}>
+          <SelectTrigger id="charset-select" className="w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CHARSETS.map((c) => (
+              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
